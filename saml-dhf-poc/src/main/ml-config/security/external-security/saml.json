@@ -1,0 +1,33 @@
+{
+    "external-security-name": "%%samlExternalSecurityName%%",
+    "description": "",
+    "authentication": "saml",
+    "cache-timeout": 15,
+    "authorization": "saml",
+    "ldap-server": {
+        "ldap-server-uri": "",
+        "ldap-base": "",
+        "ldap-attribute": "",
+        "ldap-default-user": "",
+        "ldap-password": "",
+        "ldap-bind-method": "MD5",
+        "ldap-memberof-attribute": "",
+        "ldap-member-attribute": "",
+        "ldap-start-tls": false,
+        "ldap-certificate": "",
+        "ldap-private-key": "",
+        "ldap-nested-lookup": true,
+        "ldap-remove-domain": true
+    },
+    "saml-server": {
+        "saml-entity-id": "%%samlEntityId%%",
+        "saml-attribute-name": [
+            "externalName"
+        ],
+        "saml-privilege-attribute-name": "",
+        "http-options": null,
+        "saml-destination": "%%samlDestination%%",
+        "saml-issuer": "%%samlIssuer%%",
+        "saml-assertion-host": ""
+    }
+}
