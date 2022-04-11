@@ -12,6 +12,9 @@ const parseString = require("xml2js").parseString;
 const stripPrefix = require("xml2js").processors.stripPrefix;
 const axios = require("axios")
 
+const SAML = require("saml-encoder-decoder-js");
+const xmlParser = require("xml2json");
+
 const fs = require('fs');
 
 
@@ -35,7 +38,9 @@ const strategy = new passportSaml.Strategy(
         callbackUrl: "https://jamesds.synology.me:3080/login/sso/callback",
         cert: fs.readFileSync("./cert/onelogin.pem", "utf8"),
     },
-    (profile, done) => done(null, profile),
+    (profile, done) => {
+        done(null, profile)
+    } 
     );
 
 passport.use(strategy);
@@ -63,6 +68,8 @@ router.get('/login/sso',
         failureRedirect: '/login',
     }));
 
+
+
 /**
  * This is the callback URL
  * Once Identity Provider validated the Credentials it will be called with base64 SAML req body
@@ -82,21 +89,31 @@ app.post(
           if(err) {
             throw new Error(err);
           } else {
-            parseString(xmlResponse, { tagNameProcessors: [stripPrefix] }, function(err, result) {
-              if (err) {
-                throw err;
-              } else {
-                console.log(result);
-    
+
+                const jsonObject = xmlParser.toJson(xmlResponse, {
+                    object: true,
+                    sanitize: true,
+                    trim: true
+                });
+                // Here you can do whatever you wanna do with the json object
+                console.log(jsonObject["samlp:Response"]["saml:Assertion"]["saml:Conditions"].NotOnOrAfter);
+
                 //sign token
-                req.session.SAMLResponse =  req.body.SAMLResponse
-              }
-            });
+                req.session.SAMLResponse =   req.body.SAMLResponse.replace(/\r?\n|\r/g, '')
+                req.session.NotOnOrAfter=jsonObject["samlp:Response"]["saml:Assertion"]["saml:Conditions"].NotOnOrAfter
+
           }
         });
         res.redirect("/");
     }
 );
+
+
+router.get('/samlResponseInfo', async (req, res) => {
+ 
+     res.json({user:req.user, notOnOrAfter: req.session.NotOnOrAfter});
+
+   });
 
 //= ==========Registering Router==========
 app.use('/', router);
@@ -132,7 +149,7 @@ app.get('/login.sso/Metadata',
 app.get("^/api/*", function (req, res, next) {
 
     const  headers= {  "Content-type": "Application/json", 
-        "authorization": `SAML token= ${req.session.SAMLResponse.replace(/\r?\n|\r/g, '')}`}
+        "authorization": `SAML token= ${req.session.SAMLResponse}`}
 
     var url = 'http://localhost:9002' + req.originalUrl.replace("/api", "/v1")
 
@@ -154,7 +171,7 @@ app.get("^/api/*", function (req, res, next) {
 app.post("/api/*", function (req, res, next) {
 
     const  headers= {  "Content-type": "Application/json", 
-        "authorization": `SAML token= ${req.session.SAMLResponse.replace(/\r?\n|\r/g, '')}`}
+        "authorization": `SAML token= ${req.session.SAMLResponse}`}
 
     var url = 'http://localhost:9002' + req.originalUrl.replace("/api", "/v1")
 
@@ -175,7 +192,7 @@ app.post("/api/*", function (req, res, next) {
 app.put("/api/*", function (req, res, next) {
 
     const  headers= {  "Content-type": "Application/json", 
-    "authorization": `SAML token= ${req.session.SAMLResponse.replace(/\r?\n|\r/g, '')}`}
+    "authorization": `SAML token= ${req.session.SAMLResponse}`}
 
     var url = 'http://localhost:9002' + req.originalUrl.replace("/api", "/v1")
 
@@ -196,7 +213,7 @@ app.delete("/api/*", function (req, res, next) {
 
   
     const  headers= {  "Content-type": "Application/json", 
-    "authorization": `SAML token= ${req.session.SAMLResponse.replace(/\r?\n|\r/g, '')}`}
+    "authorization": `SAML token= ${req.session.SAMLResponse}`}
 
     var url = 'http://localhost:9002' + req.originalUrl.replace("/api", "/v1")
 
